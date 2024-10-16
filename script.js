@@ -1,195 +1,182 @@
-// Menambahkan input nilai sesuai jumlah mata pelajaran
-document.getElementById('jumlahMataPelajaran').addEventListener('input', function() {
-    const jumlah = parseInt(this.value);
-    const nilaiInputsContainer = document.getElementById('nilaiInputs');
-    nilaiInputsContainer.innerHTML = ''; // Kosongkan input sebelumnya
-    
-    for (let i = 1; i <= jumlah; i++) {
+// Menambahkan event listener pada tombol "Mulai Input Nilai"
+document.getElementById('startInput').addEventListener('click', function () {
+    const nama = document.getElementById('nama').value;
+    const jumlahMataPelajaran = parseInt(document.getElementById('jumlahMataPelajaran').value);
+
+    if (!nama || jumlahMataPelajaran < 1 || jumlahMataPelajaran > 6) {
+        alert('Harap masukkan nama dan jumlah mata pelajaran yang valid (1-6).');
+        return;
+    }
+
+    // Menampilkan bagian input nilai
+    document.querySelector('.input-section').classList.add('hidden');
+    document.querySelector('.nilai-section').classList.remove('hidden');
+
+    const nilaiInputsDiv = document.getElementById('nilaiInputs');
+    nilaiInputsDiv.innerHTML = ''; // Mengosongkan sebelumnya
+
+    for (let i = 1; i <= jumlahMataPelajaran; i++) {
         const input = document.createElement('input');
         input.type = 'number';
         input.placeholder = `Nilai ke-${i} (0-100)`;
-        input.required = true;
-        nilaiInputsContainer.appendChild(input);
+        input.id = `nilai${i}`;
+        nilaiInputsDiv.appendChild(input);
     }
 });
 
-// Fungsi untuk menghitung median
-function hitungMedian(nilaiArray) {
-    nilaiArray.sort((a, b) => a - b);
-    const mid = Math.floor(nilaiArray.length / 2);
-    return nilaiArray.length % 2 !== 0 ? nilaiArray[mid] : (nilaiArray[mid - 1] + nilaiArray[mid]) / 2;
-}
+// Fungsi untuk mengirim nilai dan menampilkan hasil
+document.getElementById('submitNilai').addEventListener('click', function () {
+    const nama = document.getElementById('nama').value;
+    const jumlahMataPelajaran = parseInt(document.getElementById('jumlahMataPelajaran').value);
+    let totalNilai = 0;
+    let nilaiTertinggi = 0;
+    let nilaiTerendah = 100;
+    const nilaiArray = []; // Menyimpan nilai untuk histogram
 
-// Fungsi untuk menghitung modus
-function hitungModus(nilaiArray) {
-    const frekuensi = {};
-    nilaiArray.forEach((nilai) => {
-        frekuensi[nilai] = (frekuensi[nilai] || 0) + 1;
-    });
-    const maxFrekuensi = Math.max(...Object.values(frekuensi));
-    return Object.keys(frekuensi).filter((key) => frekuensi[key] === maxFrekuensi);
-}
-
-// Tombol submit untuk menampilkan hasil di modal
-document.getElementById('submitBtn').addEventListener('click', function() {
-    const namaMurid = document.getElementById('namaMurid').value.trim();
-    const nilaiInputs = document.querySelectorAll('#nilaiInputs input');
-    let nilaiArray = [];
-
-    // Validasi input nilai
-    for (let input of nilaiInputs) {
-        let nilai = parseFloat(input.value);
-        if (nilai >= 0 && nilai <= 100) {
-            nilaiArray.push(nilai);
-        } else {
+    for (let i = 1; i <= jumlahMataPelajaran; i++) {
+        const nilai = parseFloat(document.getElementById(`nilai${i}`).value);
+        if (nilai < 0 || nilai > 100 || isNaN(nilai)) {
             alert('Nilai harus antara 0 dan 100.');
             return;
         }
+        totalNilai += nilai;
+        nilaiTertinggi = Math.max(nilaiTertinggi, nilai);
+        nilaiTerendah = Math.min(nilaiTerendah, nilai);
+        nilaiArray.push(nilai); // Menambahkan nilai ke array
     }
 
-    // Hitung rata-rata, nilai tertinggi, dan terendah
-    const rataRata = nilaiArray.reduce((a, b) => a + b, 0) / nilaiArray.length;
-    const nilaiTertinggi = Math.max(...nilaiArray);
-    const nilaiTerendah = Math.min(...nilaiArray);
-    const grade = (rataRata >= 90) ? 'A' :
-                  (rataRata >= 80) ? 'B' :
-                  (rataRata >= 75) ? 'C' :
-                  (rataRata >= 60) ? 'D' : 'F';
+    const rataRata = totalNilai / jumlahMataPelajaran;
+    let grade;
 
-    // Menentukan komentar berdasarkan grade
-    let comment = '';
-    if (rataRata < 60) {
-        comment = 'Peringatan: Rata-rata nilai di bawah standar!';
-    } else {
-        switch (grade) {
-            case 'A':
-                comment = 'Sangat Bagus! Teruskan kerja kerasmu!';
-                break;
-            case 'B':
-                comment = 'Bagus! Cobalah untuk lebih baik lagi.';
-                break;
-            case 'C':
-                comment = 'Cukup baik, tapi ada ruang untuk perbaikan.';
-                break;
-            case 'D':
-                comment = 'Perlu lebih banyak usaha.';
-                break;
-            case 'F':
-                comment = 'Jangan menyerah, pelajari kembali materi!';
-                break;
-        }
+    if (rataRata >= 90) grade = 'A';
+    else if (rataRata >= 80) grade = 'B';
+    else if (rataRata >= 75) grade = 'C';
+    else if (rataRata >= 60) grade = 'D';
+    else grade = 'F';
+
+    // Menampilkan hasil
+    document.querySelector('.nilai-section').classList.add('hidden');
+    document.querySelector('.output-section').classList.remove('hidden');
+
+    const hasilDiv = document.getElementById('hasil');
+    hasilDiv.innerHTML = `
+        <p><strong>Nama Murid:</strong> ${nama}</p>
+        <p><strong>Jumlah Mata Pelajaran:</strong> ${jumlahMataPelajaran}</p>
+        <p><strong>Nilai Tertinggi:</strong> ${nilaiTertinggi}</p>
+        <p><strong>Nilai Terendah:</strong> ${nilaiTerendah}</p>
+        <p><strong>Rata-rata Nilai:</strong> ${rataRata.toFixed(2)}</p>
+        <p><strong>Grade:</strong> ${grade}</p>
+    `;
+
+    // Menampilkan grafik
+    displayChart(nilaiArray);
+    addToHistory(nama, nilaiArray);
+});
+
+// Fungsi untuk menampilkan grafik
+function displayChart(nilaiArray) {
+    const ctx = document.getElementById('grafikNilai').getContext('2d');
+    // Menghapus grafik lama jika ada
+    if (window.chart) {
+        window.chart.destroy();
     }
-
-        // Hitung median dan modus
-        const median = hitungMedian(nilaiArray);
-        const modus = hitungModus(nilaiArray).join(', '); // Mengonversi array modus menjadi string
-    
-        // Menampilkan hasil di modal
-        document.getElementById('infoNama').innerText = `Nama Murid: ${namaMurid}`;
-        document.getElementById('jumlahNilai').innerText = `Jumlah Nilai: ${nilaiArray.length}`;
-        document.getElementById('nilaiTertinggi').innerText = `Nilai Tertinggi: ${nilaiTertinggi}`;
-        document.getElementById('nilaiTerendah').innerText = `Nilai Terendah: ${nilaiTerendah}`;
-        document.getElementById('rataRata').innerText = `Rata-rata Nilai: ${rataRata.toFixed(2)}`;
-        document.getElementById('grade').innerText = `Grade: ${grade}`;
-        document.getElementById('comment').innerText = comment;
-        document.getElementById('median').innerText = `Median: ${median}`;
-        document.getElementById('modus').innerText = `Modus: ${modus}`;
-    
-        // Menampilkan grafik nilai menggunakan Chart.js
-        const ctx = document.getElementById('nilaiChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: Array.from({ length: nilaiArray.length }, (_, i) => `Mata Pelajaran ${i + 1}`),
-                datasets: [{
-                    label: 'Nilai',
-                    data: nilaiArray,
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Nilai'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Mata Pelajaran'
-                        }
-                    }
-                },
-                responsive: true,
-                plugins: {
-                    legend: {
+    window.chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: nilaiArray.map((_, index) => `Nilai ${index + 1}`),
+            datasets: [{
+                label: 'Nilai Murid',
+                data: nilaiArray,
+                backgroundColor: '#8B4513', // Warna coklat
+                borderColor: '#5b3d10',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
                         display: true,
-                        position: 'top',
+                        text: 'Nilai'
                     }
                 }
             }
-        });
-    
-        // Menampilkan modal
-        document.getElementById('modal').style.display = 'block';
-    
-        // Menyimpan riwayat penilaian
-        const historyList = document.getElementById('historyList');
-        const historyItem = document.createElement('li');
-        historyItem.innerText = `${namaMurid}: Rata-rata ${rataRata.toFixed(2)}, Grade ${grade}`;
-        historyList.appendChild(historyItem);
-    });
-    
-    // Tombol close modal
-    document.getElementById('closeModal').addEventListener('click', function() {
-        document.getElementById('modal').style.display = 'none';
-    });
-    
-    // Menutup modal saat mengklik di luar modal
-    window.onclick = function(event) {
-        const modal = document.getElementById('modal');
-        if (event.target === modal) {
-            modal.style.display = 'none';
         }
-    };
-    
-    // Reset semua input
-    document.getElementById('resetBtn').addEventListener('click', function() {
-        document.getElementById('namaMurid').value = '';
-        document.getElementById('jumlahMataPelajaran').value = '';
-        document.getElementById('nilaiInputs').innerHTML = '';
-        document.getElementById('historyList').innerHTML = '';
-        document.getElementById('modal').style.display = 'none';
     });
-    
-    // Unduh hasil penilaian
-    document.getElementById('downloadBtn').addEventListener('click', function() {
-        const namaMurid = document.getElementById('infoNama').innerText;
-        const hasil = `
-        ${namaMurid}
-        ${document.getElementById('jumlahNilai').innerText}
-        ${document.getElementById('nilaiTertinggi').innerText}
-        ${document.getElementById('nilaiTerendah').innerText}
-        ${document.getElementById('rataRata').innerText}
-        ${document.getElementById('grade').innerText}
-        ${document.getElementById('comment').innerText}
-        ${document.getElementById('median').innerText}
-        ${document.getElementById('modus').innerText}
-        `;
-        
-        const blob = new Blob([hasil], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'hasil_penilaian.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+}
+
+// Menambahkan histori nilai
+function addToHistory(nama, nilaiArray) {
+    const historyList = document.getElementById('historyList');
+    const historyItem = document.createElement('li');
+    historyItem.textContent = `${nama}: ${nilaiArray.join(', ')}`;
+    historyList.appendChild(historyItem);
+    document.querySelector('.history-section').classList.remove('hidden');
+}
+
+// Reset fungsi
+document.getElementById('reset').addEventListener('click', function () {
+    // Menghapus input nama dan jumlah mata pelajaran
+    document.getElementById('nama').value = '';
+    document.getElementById('jumlahMataPelajaran').value = '';
+    document.getElementById('nilaiInputs').innerHTML = '';
+
+    // Menyembunyikan output dan history
+    document.querySelector('.output-section').classList.add('hidden');
+    document.querySelector('.history-section').classList.add('hidden');
+
+    // Menampilkan kembali input section
+    document.querySelector('.input-section').classList.remove('hidden');
+
+    // Menghapus grafik jika ada
+    const canvasContainer = document.getElementById('grafikNilai').parentElement;
+    canvasContainer.style.display = 'none'; // Menyembunyikan grafik
+    if (window.chart) {
+        window.chart.destroy(); // Menghapus chart yang ada
+    }
+});
+
+
+// Fitur rahasia
+document.getElementById('secretFeature').addEventListener('click', function () {
+    alert('Fitur Rahasia: Selamat datang di aplikasi kami! Anda hebat!');
+});
+
+// Menampilkan grafik
+function displayChart(nilaiArray) {
+    const ctx = document.getElementById('grafikNilai').getContext('2d');
+    // Menghapus grafik lama jika ada
+    if (window.chart) {
+        window.chart.destroy();
+    }
+    window.chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: nilaiArray.map((_, index) => `Nilai ${index + 1}`),
+            datasets: [{
+                label: 'Nilai Murid',
+                data: nilaiArray,
+                backgroundColor: '#8B4513', 
+                borderColor: '#5b3d10',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Nilai'
+                    }
+                }
+            }
+        }
     });
-    
+
+    // Menampilkan canvas dengan animasi
+    const canvasContainer = document.getElementById('grafikNilai').parentElement;
+    canvasContainer.style.display = 'block';
+    canvasContainer.classList.add('fadeIn'); // Menambahkan kelas fadeIn untuk efek
+}
